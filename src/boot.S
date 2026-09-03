@@ -2,7 +2,7 @@
 
 .section .text 
 .global _start 
-.type _start, %function
+.type _start STT_FUNC
 
 /* Start function */
 _start: 

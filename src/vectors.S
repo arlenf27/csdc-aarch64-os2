@@ -6,7 +6,7 @@
    I am using .vectors and not .text */
 .section .vectors, "ax"
 .global exception_vectors
-.type exception_vectors, @function
+.type exception_vectors STT_FUNC
 
 exception_vectors:
 	/* Current EL with SP_EL0 */
