@@ -32,6 +32,9 @@ void kernel_main(void* dtb){
 		uart_puts("Global .data test: ");
 		uart_putc(global_data_test);
 		uart_puts("\n");
+		uart_puts("QEMU Virt UART base registers address: ");
+		uart_putd(uart_pl011_ram_address);
+		uart_puts("\n");
 		uart_puts("wfe...no interrupts set up yet... \n");
 	}
 	/* simple idle: wait for interrupts (low power) */ 
