@@ -10,16 +10,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout Repository
-          uses: actions/checkout@v4
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-        - name:	Install ARM GNU Toolchain
-          run: | 
-            mkdir -p /opt/toolchain
-            curl -L "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-aarch64-none-elf.tar.xz" -o toolchain.tar.xz
-            tar -xf toolchain.tar.xz -C /opt/toolchain --strip-components=1
-            echo "/opt/toolchain/bin" >> $GITHUB_PATH
+      - name: Install ARM GNU Toolchain
+        run: | 
+          mkdir -p /opt/toolchain
+          curl -L "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-aarch64-none-elf.tar.xz" -o toolchain.tar.xz
+          tar -xf toolchain.tar.xz -C /opt/toolchain --strip-components=1
+          echo "/opt/toolchain/bin" >> $GITHUB_PATH
 
-        - name: Run Makefile
-          run: make
+      - name: Run Makefile
+        run: make
