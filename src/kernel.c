@@ -24,7 +24,8 @@ void kernel_main(void* dtb){
 	uint64_t uart_pl011_ram_address;
 	if(dtb_correct_magic((const void*) dtb) && find_device_reg(dtb, QEMU_VIRT_UART_DTB_DEVICE_NAME, &uart_pl011_ram_address)){
 		uart_init(uart_pl011_ram_address);
-		uart_puts("Hello from AArch64 bare-metal kernel!\n");  
+		uart_puts("Hello from AArch64 bare-metal kernel!\n");
+		uart_puts("DTB magic number is correct. \n");
 		unsigned int el = read_el();
 		uart_puts("Current exception level is: ");
 		uart_putc('0' + (el & 0xF));
