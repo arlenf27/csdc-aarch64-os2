@@ -9,6 +9,8 @@ void uart_putc(char c);
 
 void uart_puts(const char* s); 
 
+void uart_putu(uint64_t u);
+
 void uart_putd(int64_t d);
 
 #endif
