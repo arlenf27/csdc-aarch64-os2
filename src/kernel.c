@@ -6,6 +6,7 @@
 #include "uart.h"
 
 #define QEMU_VIRT_UART_DTB_DEVICE_NAME "arm,pl011"
+#define QEMU_VIRT_GIC_DTB_DEVICE_NAME "arm,cortex-a15-gic"
 
 /* Global .data test */
 char global_data_test = 'e';
@@ -36,6 +37,15 @@ void kernel_main(void* dtb){
 		uart_puts("QEMU Virt UART base registers address: ");
 		uart_putd(uart_pl011_ram_address);
 		uart_puts("\n");
+		uint64_t gic_ram_address;
+		if(find_device_reg(dtb, QEMU_VIRT_GIC_DTB_DEVICE_NAME, &gic_ram_address)){
+			uart_puts("QEMU Virt GIC base registers address: ");
+			uart_putd(gic_ram_address);
+			uart_puts("\n");
+		}else{
+			uart_puts(QEMU_VIRT_GIC_DTB_DEVICE_NAME);
+			uart_puts(" not found. \n");
+		}
 		uart_puts("wfe...no interrupts set up yet... \n");
 	}
 	/* simple idle: wait for interrupts (low power) */ 
