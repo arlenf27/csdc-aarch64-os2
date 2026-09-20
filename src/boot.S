@@ -6,6 +6,11 @@
 
 /* Start function */
 _start: 
+	/* Load vector table */
+	ldr x0, =exception_vectors
+	msr VBAR_EL1, x0
+	isb
+
 	/* Save DTB pointer */
 	ldr x20, =__dtb_start
 
