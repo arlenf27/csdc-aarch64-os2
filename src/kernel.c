@@ -37,6 +37,9 @@ void kernel_main(void* dtb){
 		uart_putd(uart_pl011_ram_address);
 		uart_puts("\n");
 		uart_puts("wfe...no interrupts set up yet... \n");
+		
+		__asm__ volatile("svc     #0");
+
 	}
 	/* simple idle: wait for interrupts (low power) */ 
 	while(1){
