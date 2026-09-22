@@ -37,7 +37,7 @@ void kernel_main(void* dtb){
 		uart_putd(uart_pl011_ram_address);
 		uart_puts("\n");
 		uart_puts("wfe...no interrupts set up yet... \n");
-		
+		uart_puts("TEMP test for synchronous exception\n");
 		__asm__ volatile("svc     #0");
 
 	}
