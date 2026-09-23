@@ -1,7 +1,5 @@
 /* vectors.S - Aarch64 vector tables */
 
-/* TODO - exception vectors UNUSED currently and NOT loaded into VBAR_EL1! */
-
 /* "ax" explicitly means allocatable and executable, putting this here because
    I am using .vectors and not .text */
 .section .vectors, "ax"
