@@ -26,18 +26,26 @@
 	stp x24, x25, [sp, #192]
 	stp x26, x27, [sp, #208]
 	stp x28, x29, [sp, #224]
-	str x30, [sp, #240]  
 
-	mrs x0, ELR_EL1
-	mrs x1, SPSR_EL1
-	stp x0,	x1, [sp, #248]
+	/* calculate original stack ptr */
+	add x21, sp, #STACK_SAVED_REGISTERS_SIZE
+	stp x30, x21, [sp, #240]
+
+	/* save ELR and SPSR at offset 256 */
+	mrs x22, ELR_EL1
+	mrs x23, SPSR_EL1
+
+	stp x22, x23, [sp, #256]
 .endm
 
 .macro load_processor_state
     /* restore special purpose registers first */
-	ldp x0, x1, [sp, #248]
-    msr SPSR_EL1, x1
-    msr ELR_EL1, x0
+	ldp x22, x23, [sp, #256]
+	msr ELR_EL1, x22
+    msr SPSR_EL1, x23
+
+	/* restore link register */
+	ldr x30, [sp, #240]
 
     ldp x0, x1, [sp]
     ldp x2, x3, [sp, #16]
@@ -54,7 +62,6 @@
     ldp x24, x25, [sp, #192]
     ldp x26, x27, [sp, #208]
     ldp x28, x29, [sp, #224]
-    ldr x30, [sp, #240]
 
     add sp, sp, #STACK_SAVED_REGISTERS_SIZE
 .endm
