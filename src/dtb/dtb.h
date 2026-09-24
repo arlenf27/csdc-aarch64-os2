@@ -10,6 +10,8 @@
 #define FDT_NOP 0x00000004
 #define FDT_END 0x00000009
 
+#define DTB_REG_MAX_REGIONS 16
+
 typedef struct dtb_header{
 	uint32_t magic;
 	uint32_t total_size;
@@ -34,8 +36,33 @@ typedef struct dtb_node_state{
 	uint32_t reg_len;
 } dtb_node_state;
 
+typedef struct dtb_reg{
+	uint64_t address;
+	uint64_t size;
+} dtb_reg;
+
+typedef struct dtb_regs{
+	dtb_reg reg_regions[DTB_REG_MAX_REGIONS];
+	uint32_t count;
+} dtb_regs;
+
+typedef struct dtb_interrupts{
+	uint32_t interrupt_parent;
+	uint32_t interrupt_cells;
+	uint32_t interrupt_count;
+	const uint32_t* interrupt_specifiers;
+} dtb_interrupts;
+
+typedef struct dtb_interrupt_node_state{
+	uint32_t interrupt_parent;
+	uint8_t interrupt_parent_present;
+	const void* interrupts_data;
+	uint32_t interrupts_len;
+	uint32_t compatible_match;
+} dtb_interrupt_node_state;
+
 uint8_t dtb_correct_magic(const void* raw_dtb);
 
-uint8_t find_device_reg(const void* raw_dtb, const char* target_compat, uint64_t* address);
+uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, dtb_regs* regs);
 
 #endif

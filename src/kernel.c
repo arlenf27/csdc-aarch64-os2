@@ -22,9 +22,9 @@ static unsigned int read_el(){
 
 /* Exported symbol called by boot.S */ 
 void kernel_main(void* dtb){
-	uint64_t uart_pl011_ram_address;
-	if(dtb_correct_magic((const void*) dtb) && find_device_reg(dtb, QEMU_VIRT_UART_DTB_DEVICE_NAME, &uart_pl011_ram_address)){
-		uart_init(uart_pl011_ram_address);
+	dtb_regs uart_regs;
+	if(dtb_correct_magic((const void*) dtb) && find_device_regs(dtb, QEMU_VIRT_UART_DTB_DEVICE_NAME, &uart_regs) && uart_regs.count > 0){
+		uart_init(uart_regs.reg_regions[0].address);
 		uart_puts("Hello from AArch64 bare-metal kernel!\n");
 		uart_puts("DTB magic number is correct. \n");
 		unsigned int el = read_el();
@@ -35,16 +35,19 @@ void kernel_main(void* dtb){
 		uart_putc(global_data_test);
 		uart_puts("\n");
 		uart_puts("QEMU Virt UART base registers address: ");
-		uart_putd(uart_pl011_ram_address);
+		uart_putd(uart_regs.reg_regions[0].address);
 		uart_puts("\n");
-		uint64_t gic_ram_address;
-		if(find_device_reg(dtb, QEMU_VIRT_GIC_DTB_DEVICE_NAME, &gic_ram_address)){
-			uart_puts("QEMU Virt GIC base registers address: ");
-			uart_putd(gic_ram_address);
+		dtb_regs gic_regs;
+		if(find_device_regs(dtb, QEMU_VIRT_GIC_DTB_DEVICE_NAME, &gic_regs) && gic_regs.count > 1){
+			uart_puts("QEMU Virt GIC base registers address index 0 (GICD): ");
+			uart_putd(gic_regs.reg_regions[0].address);
+			uart_puts("\n");
+			uart_puts("QEMU Virt GIC base registers address index 1 (GICC): ");
+			uart_putd(gic_regs.reg_regions[1].address);
 			uart_puts("\n");
 		}else{
 			uart_puts(QEMU_VIRT_GIC_DTB_DEVICE_NAME);
-			uart_puts(" not found. \n");
+			uart_puts(" not found or unexpected DTB registers setup. \n");
 		}
 		uart_puts("wfe...no interrupts set up yet... \n");
 		uart_puts("TEMP test for synchronous exception\n");
