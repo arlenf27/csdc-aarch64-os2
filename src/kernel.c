@@ -47,6 +47,9 @@ void kernel_main(void* dtb){
 			uart_puts(" not found. \n");
 		}
 		uart_puts("wfe...no interrupts set up yet... \n");
+		uart_puts("TEMP test for synchronous exception\n");
+		__asm__ volatile("svc     #0");
+
 	}
 	/* simple idle: wait for interrupts (low power) */ 
 	while(1){
