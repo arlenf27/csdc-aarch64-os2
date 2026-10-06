@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include "dtb.h"
 #include "uart.h"
+#include "gic.h"
+#include "timer.h"
 
 #define QEMU_VIRT_UART_DTB_DEVICE_NAME "arm,pl011"
 #define QEMU_VIRT_GIC_DTB_DEVICE_NAME "arm,cortex-a15-gic"
@@ -52,7 +54,11 @@ void kernel_main(void* dtb){
 		uart_puts("wfe...no interrupts set up yet... \n");
 		uart_puts("TEMP test for synchronous exception\n");
 		__asm__ volatile("svc     #0");
-
+		uart_puts("Start the GIC\n");
+		GIC_init();
+		uart_puts("Timer interrupt starting now!\n");
+		set_timer(5);
+		
 	}
 	/* simple idle: wait for interrupts (low power) */ 
 	while(1){

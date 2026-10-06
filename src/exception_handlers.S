@@ -104,7 +104,11 @@ synchronous_handler_spx:
 .global irq_handler_spx
 .type irq_handler_spx STT_FUNC
 irq_handler_spx:
-	/* TODO */
+	save_processor_state
+	
+	bl 			irq_handler
+
+	load_processor_state
 	eret
 
 .global fiq_handler_spx
