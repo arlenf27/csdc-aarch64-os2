@@ -26,10 +26,12 @@ SECTIONS{
 
 	.data : { *(.data) *(.data.*) } : read_write_seg
 
+	. = ALIGN(8);
 	__bss_start = .; 
 	
 	.bss (NOLOAD) : { *(.bss) *(.bss.*) *(COMMON) } : read_write_seg
 	
+	. = ALIGN(8);
 	__bss_end = .;
 
 	/* Reserve stack space at top of image */  
