@@ -65,4 +65,6 @@ uint8_t dtb_correct_magic(const void* raw_dtb);
 
 uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, dtb_regs* regs);
 
+uint8_t find_device_interrupts(const void* raw_dtb, const char* target_compat, dtb_interrupts* result);
+
 #endif

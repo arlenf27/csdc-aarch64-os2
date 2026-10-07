@@ -6,6 +6,7 @@
 #include "uart.h"
 #include "gic.h"
 #include "timer.h"
+#include "utils.h"
 
 #define QEMU_VIRT_UART_DTB_DEVICE_NAME "arm,pl011"
 #define QEMU_VIRT_GIC_DTB_DEVICE_NAME "arm,cortex-a15-gic"
@@ -51,7 +52,34 @@ void kernel_main(void* dtb){
 			uart_puts(QEMU_VIRT_GIC_DTB_DEVICE_NAME);
 			uart_puts(" not found or unexpected DTB registers setup. \n");
 		}
-		uart_puts("wfe...no interrupts set up yet... \n");
+		dtb_interrupts timer_int;
+		if(find_device_interrupts(dtb, "arm,armv7-timer", &timer_int)){
+			uart_puts("armv7-timer DTB interrupt results: ");
+			uart_putd(timer_int.interrupt_parent);
+			uart_puts(", ");
+			uart_putd(timer_int.interrupt_cells);
+			uart_puts(", ");
+			uart_putd(timer_int.interrupt_count);
+			for(int i = 0; i < timer_int.interrupt_cells * timer_int.interrupt_count; i++){
+				uart_puts(", ");
+				uart_putd(be32tole32(timer_int.interrupt_specifiers[i]));
+			}
+			uart_puts("\n");
+		}
+		dtb_interrupts uart_int;
+		if(find_device_interrupts(dtb, QEMU_VIRT_UART_DTB_DEVICE_NAME, &uart_int)){
+			uart_puts("UART DTB interrupt results: ");
+			uart_putd(uart_int.interrupt_parent);
+			uart_puts(", ");
+			uart_putd(uart_int.interrupt_cells);
+			uart_puts(", ");
+			uart_putd(uart_int.interrupt_count);
+			for(int i = 0; i < uart_int.interrupt_cells * uart_int.interrupt_count; i++){
+				uart_puts(", ");
+				uart_putd(be32tole32(uart_int.interrupt_specifiers[i]));
+			}
+			uart_puts("\n");
+		}
 		uart_puts("TEMP test for synchronous exception\n");
 		__asm__ volatile("svc     #0");
 		uart_puts("Start the GIC\n");

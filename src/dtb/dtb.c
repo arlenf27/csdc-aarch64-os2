@@ -1,11 +1,20 @@
 #include <stdint.h>
 #include "dtb.h"
 #include "utils.h"
+#include "uart.h"
 
 #define DTB_CELLS_STACK_DEPTH 32
 #define DTB_DEFAULT_ADDRESS_CELLS 2
 #define DTB_DEFAULT_SIZE_CELLS 1
 #define MAX_CURRENT_NODE_NAME_SIZE 256
+
+typedef struct dtb_interrupt_lookup_state{
+	uint8_t has_phandle;
+	uint8_t is_interrupt_controller;
+	uint8_t has_interrupt_cells;
+	uint32_t phandle;
+	uint32_t interrupt_cells;
+} dtb_interrupt_lookup_state;
 
 uint8_t dtb_correct_magic(const void* raw_dtb){
 	dtb_header* dtb = (dtb_header*) raw_dtb;
@@ -63,19 +72,17 @@ static uint8_t dtb_translate_one_range(const dtb_node_state* cstack, uint32_t bu
 }
 
 static uint8_t dtb_find_interrupt_cells(const void* raw_dtb, uint32_t target_phandle, uint32_t* interrupt_cells){
-	/* TODO: This helper function has NOT been tested or validated yet! It is possible it's not correct, please check!
-	   Point of this function is to find #interrupt-cells for an interrupt parent */
 	const dtb_header* header = (const dtb_header*) raw_dtb;
 	const uint8_t* struct_start = (const uint8_t*) raw_dtb + be32tole32(header->off_dt_struct);
 	const char* strings_start = (const char*) raw_dtb + be32tole32(header->off_dt_strings);
 	const uint8_t* it = struct_start;
+	dtb_interrupt_lookup_state stack[DTB_CELLS_STACK_DEPTH];
 	uint32_t depth = 0;
-	uint8_t node_has_phandle = 0;
-	/* NOTE: For now, just considering interrupt-controller and NOT interrupt nexus */
-	uint8_t node_is_interrupt_controller = 0;
-	uint8_t node_has_interrupt_cells = 0;
-	uint32_t node_phandle = 0;
-	uint32_t node_interrupt_cells = 0;
+	stack[depth].has_phandle = 0;
+	stack[depth].is_interrupt_controller = 0;
+	stack[depth].has_interrupt_cells = 0;
+	stack[depth].phandle = 0;
+	stack[depth].interrupt_cells = 0;
 	while(1){
 		uint32_t token = be32tole32(*(const uint32_t*) it);
 		it +=4;
@@ -87,13 +94,13 @@ static uint8_t dtb_find_interrupt_cells(const void* raw_dtb, uint32_t target_pha
 				it += name_len + 1;
 				/* Padding */
 				it = (const uint8_t*) (((uintptr_t) it + 3) & (~3));
+				if(depth + 1 >= DTB_CELLS_STACK_DEPTH) return 0;
 				depth++;
-				/* Every node gets a fresh set of properties */
-				node_has_phandle = 0;
-				node_is_interrupt_controller = 0;
-				node_has_interrupt_cells = 0;
-				node_phandle = 0;
-				node_interrupt_cells = 0;
+				stack[depth].has_phandle = 0;
+				stack[depth].is_interrupt_controller = 0;
+				stack[depth].has_interrupt_cells = 0;
+				stack[depth].phandle = 0;
+				stack[depth].interrupt_cells = 0;
 				break;
 			}
 			case FDT_PROP:
@@ -103,23 +110,23 @@ static uint8_t dtb_find_interrupt_cells(const void* raw_dtb, uint32_t target_pha
 				uint32_t name_offset = be32tole32(*(const uint32_t*) it);
 				it+=4;
 				const void* prop_data = it;
-				it = (const uint8_t*) (((uintptr_t) it + 3) & (~3));
+				it += (len + 3) & ~((uint32_t) 3);
 				const char* prop_name = strings_start + name_offset;
 				if(strcmp(prop_name, "phandle") && len == 4){
-					node_phandle = be32tole32(*(const uint32_t*) prop_data);
-					node_has_phandle = 1;
-				}else if(strcmp(prop_name, "interrupt_controller")){
-					node_is_interrupt_controller = 1;
+					stack[depth].phandle = be32tole32(*(const uint32_t*) prop_data);
+					stack[depth].has_phandle = 1;
+				}else if(strcmp(prop_name, "interrupt-controller")){
+					stack[depth].is_interrupt_controller = 1;
 				}else if(strcmp(prop_name, "#interrupt-cells") && len == 4){
-					node_interrupt_cells = be32tole32(*(const uint32_t*) prop_data);
-					node_has_interrupt_cells = 1;
+					stack[depth].interrupt_cells = be32tole32(*(const uint32_t*) prop_data);
+					stack[depth].has_interrupt_cells = 1;
 				}
 				break;
 			}
 			case FDT_END_NODE:
 			{
-				if(node_has_phandle && node_phandle == target_phandle && node_is_interrupt_controller && node_has_interrupt_cells){
-					*interrupt_cells = node_interrupt_cells;
+				if(stack[depth].has_phandle && stack[depth].phandle == target_phandle && stack[depth].is_interrupt_controller && stack[depth].has_interrupt_cells){
+					*interrupt_cells = stack[depth].interrupt_cells;
 					return 1;
 				}
 				if(depth > 0) depth--;
@@ -282,8 +289,102 @@ uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, dtb_reg
 }
 
 uint8_t find_device_interrupts(const void* raw_dtb, const char* target_compat, dtb_interrupts* result){
-	/* TODO: global function to find and fill up device interrupt information. Intended to use static helper
-	   function dtb_find_interrupt_cells. */
+	const dtb_header* header = (const dtb_header*) raw_dtb;
+	const uint8_t* struct_start = (const uint8_t*) raw_dtb + be32tole32(header->off_dt_struct);
+	const char* strings_start = (const char*) raw_dtb + be32tole32(header->off_dt_strings);
+	const uint8_t* it = struct_start;
+	dtb_interrupt_node_state cstack[DTB_CELLS_STACK_DEPTH];
+	uint32_t depth = 0;
+	cstack[depth].interrupt_parent = 0;
+	cstack[depth].interrupt_parent_present = 0;
+	cstack[depth].interrupts_data = NULL;
+	cstack[depth].interrupts_len = 0;
+	cstack[depth].compatible_match = 0;
+	while(1){
+		uint32_t token = be32tole32(*(const uint32_t*) it);
+		it += 4;
+		switch(token){
+			case FDT_BEGIN_NODE:
+			{
+				const char* name = (const char*) it;
+				size_t name_len = strlen(name);
+				it += name_len + 1;
+				it = (const uint8_t*) (((uintptr_t) it + 3) & ~((uintptr_t) 3));
+				if(depth + 1 >= DTB_CELLS_STACK_DEPTH) return 0;
+				cstack[depth+1] = cstack[depth];
+				cstack[depth+1].interrupts_data = NULL;
+				cstack[depth+1].interrupts_len = 0;
+				cstack[depth+1].compatible_match = 0;
+				depth++;
+				break;
+			}
+			case FDT_END_NODE:
+			{
+				if(cstack[depth].compatible_match && cstack[depth].interrupts_data != NULL){
+					uint32_t interrupt_parent = cstack[depth].interrupt_parent;
+					if(!cstack[depth].interrupt_parent_present) return 0;
+					uint32_t interrupt_cells;
+					if(!dtb_find_interrupt_cells(raw_dtb, interrupt_parent, &interrupt_cells)){
+						return 0;
+					}
+					if(interrupt_cells == 0) return 0;
+					uint32_t specifier_bytes = interrupt_cells * 4;
+					if(cstack[depth].interrupts_len % specifier_bytes != 0) return 0;
+					uint32_t interrupt_count = cstack[depth].interrupts_len / specifier_bytes;
+					result->interrupt_parent = interrupt_parent;
+					result->interrupt_cells = interrupt_cells;
+					result->interrupt_count = interrupt_count;
+					result->interrupt_specifiers = (const uint32_t*) cstack[depth].interrupts_data;
+					return 1;
+				}
+				if(depth > 0) depth--;
+				break;
+			}
+			case FDT_PROP:
+			{
+				uint32_t len = be32tole32(*(const uint32_t*) it);
+				it += 4;
+				uint32_t name_offset = be32tole32(*(const uint32_t*) it);
+				it += 4;
+				const void* prop_data = it;
+				it += (len + 3) & ~((uint32_t) 3);
+				const char* prop_name = strings_start + name_offset;
+				if(strcmp(prop_name, "compatible")){
+					const char* compat_str = (const char*) prop_data;
+					uint32_t left = len;
+					while(left > 0){
+						size_t str_len = strlen(compat_str);
+						if(str_len >= left) break;
+						if(strcmp(compat_str, target_compat)){
+							cstack[depth].compatible_match = 1;
+							break;
+						}
+						compat_str += str_len + 1;
+						left -= str_len + 1;
+					}
+				}else if(strcmp(prop_name, "interrupt-parent") && len == 4){
+					cstack[depth].interrupt_parent = be32tole32(*(const uint32_t*) prop_data);
+					cstack[depth].interrupt_parent_present = 1;
+				}else if(strcmp(prop_name, "interrupts")){
+					cstack[depth].interrupts_data = prop_data;
+					cstack[depth].interrupts_len = len;
+				}
+				break;
+			}
+			case FDT_NOP:
+			{
+				break;
+			}
+			case FDT_END:
+			{
+				return 0;
+			}
+			default:
+			{
+				return 0;
+			}
+		}
+	}
 	return 0;
 }
 
