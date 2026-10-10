@@ -20,23 +20,23 @@ SECTIONS{
 	/* 16 entries * 128 bytes = 2048 as defined by Aarch64 */
 	.vectors : ALIGN(2048) { *(.vectors) *(.vectors.*) } : read_execute_seg
 	
-	.text : { *(.text) *(.text.*) } : read_execute_seg
+	.text : ALIGN(16) { *(.text) *(.text.*) } : read_execute_seg
 
-	.rodata : { *(.rodata) *(.rodata.*) } : read_seg
+	.rodata : ALIGN(16) { *(.rodata) *(.rodata.*) } : read_seg
 
-	.data : { *(.data) *(.data.*) } : read_write_seg
+	.data : ALIGN(16) { *(.data) *(.data.*) } : read_write_seg
 
-	. = ALIGN(8);
+	. = ALIGN(16);
 	__bss_start = .; 
 	
-	.bss (NOLOAD) : { *(.bss) *(.bss.*) *(COMMON) } : read_write_seg
+	.bss (NOLOAD) : ALIGN(16) { *(.bss) *(.bss.*) *(COMMON) } : read_write_seg
 	
-	. = ALIGN(8);
+	. = ALIGN(16);
 	__bss_end = .;
 
 	/* Reserve stack space at top of image */  
 	
-	. = ALIGN(8);  
+	. = ALIGN(16);  
 	
 	stack_top = . + 0x20000; /* 128 KiB stack */ 
 
