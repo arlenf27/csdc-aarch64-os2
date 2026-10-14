@@ -87,7 +87,7 @@ void kernel_main(void* dtb){
 		GIC_init(dtb, gic_regs.reg_regions[QEMU_VIRT_V8_GICV2_DTB_REG_PROP_ENTRY_GICD_BASE_ADDRESS_INDEX].address, 
 				gic_regs.reg_regions[QEMU_VIRT_V8_GICV2_DTB_REG_PROP_ENTRY_GICC_BASE_ADDRESS_INDEX].address);
 		uart_puts("Timer interrupt starting now!\n");
-		set_timer(1);
+		timer_set_duration(1);
 	}
 	/* simple idle: wait for interrupts (low power) */ 
 	while(1){

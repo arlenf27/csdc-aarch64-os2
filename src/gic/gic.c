@@ -65,9 +65,9 @@ void irq_handler() {
 		if(timer_triggered_count >= 5){
 			uart_puts("Disabling timer interrupt...\n");
 			timer_triggered_count = 0;
-			disable_timer();
+			timer_disable();
 		}else{
-			set_timer(1);
+			timer_set_duration(1);
 		}
 	} else {
 		uart_puts("Something (uncaccounted for currently) went off!\n");
