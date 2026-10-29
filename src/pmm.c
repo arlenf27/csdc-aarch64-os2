@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stddef.h>
 #include "uart.h"
 
 #define PMM_PAGE_SIZE 4096
@@ -8,58 +9,55 @@ extern uint8_t __pmm_start;
 uintptr_t pmm_start_address;
 uint64_t pmm_max_size;
 uint64_t pmm_page_count;
+uint8_t* freelist;
 
 void pmm_init(uint64_t physical_usable_memory_end_address){
-	pmm_start_address = (uintptr_t) &__pmm_start;
+	/* Align to page size */
+	pmm_start_address = (((uintptr_t) &__pmm_start) + (PMM_PAGE_SIZE - 1)) & ~(PMM_PAGE_SIZE - 1);
 	pmm_max_size = physical_usable_memory_end_address - (uint64_t) pmm_start_address;
+	pmm_page_count = pmm_max_size / PMM_PAGE_SIZE;
 
-	/* TODO: Below is the start of a bitmap approach, but perhaps we might want to switch to a free list algorithm instead? 
-	   A free list is basically a linked list that only contains free pages, so finding a free page is O(1), but of course
-	   memory overhead is larger. If we do decide to do the bitmap approach first, can someone verify that this math below
-	   is correct? I'm doing this at 3 am and I can't think straight lol */
+	freelist = (uint8_t*) pmm_start_address;
+	uint64_t* first_node = (uint64_t*) freelist;
+	*first_node = (uintptr_t) 0;
+	uint8_t* freelist_it = freelist;
 
-	/* pmm_max_size * 8 is total bits available, 4096 * 8 is size in bits per page, we add one to that to account for an
-	   additional bit needed for the bitmap that specifies whether each page is free or not */
-	pmm_page_count = (pmm_max_size * 8) / (4096 * 8 + 1);
-	/* Round size of bitmap up */
-	uint64_t pmm_bitmap_size = (pmm_page_count + 7) / 8;
-
-	/* Initialize bitmap */
-	uint8_t* bitmap_it = (uint8_t*) pmm_start_address;
-	uint64_t bitmap_bytes_to_initialize_to_free = pmm_page_count / 8;
-	uint64_t i;
-	for(i = 0; i < bitmap_bytes_to_initialize_to_free; i++){
-		*bitmap_it = 0;
-		bitmap_it++;
-	}
-	uint8_t remaining_bits_to_initialize_to_free = pmm_page_count - (bitmap_bytes_to_initialize_to_free * 8);
-	if(bitmap_bytes_to_initialize_to_free < pmm_bitmap_size){
-		*bitmap_it = 0xFF;
-		(*bitmap_it) <<= remaining_bits_to_initialize_to_free;
-	}
-
-	/* TODO: TEMPORARY debug prints for math verification, delete later! */
+	/* TODO: TEMPORARY debug prints, remove later */
 	uart_puts("PMM start address: ");
-	uart_putd(pmm_start_address);
+	uart_putu(pmm_start_address);
+	uart_puts("\nPMM freelist node 0 address: ");
+	uart_putu(*first_node);
 	uart_puts("\nPMM max size: ");
-	uart_putd(pmm_max_size);
+	uart_putu(pmm_max_size);
 	uart_puts("\nPMM page count: ");
-	uart_putd(pmm_page_count);
-	uart_puts("\nPMM bitmap size: ");
-	uart_putd(pmm_bitmap_size);
-	uart_puts("\nPMM whole bytes to initialize to free: ");
-	uart_putd(bitmap_bytes_to_initialize_to_free);
-	uart_puts("\nPMM remaining bits to initialize to free: ");
-	uart_putd(remaining_bits_to_initialize_to_free);
+	uart_putu(pmm_page_count);
 	uart_puts("\n");
+
+	/* All pages are free to start, so every PMM_PAGE_SIZE bytes, the first 64 bits of each free page denotes
+	   address of next free page. At init, every page is free, so there's PMM_PAGE_SIZE bytes between every
+	   free list "node" */
+	for(int i = 1; i < pmm_page_count; i++){
+		uint64_t* current_node = (uint64_t*) freelist_it;
+		freelist_it += PMM_PAGE_SIZE;
+		*current_node = (uintptr_t) freelist_it;
+		uint64_t* next_node = (uint64_t*) (((uint8_t*) pmm_start_address) + (i * PMM_PAGE_SIZE));
+		*next_node = (uintptr_t) 0;
+
+		/* TODO: TEMPORARY debug prints, remove later */
+		uart_puts("PMM freelist node ");
+		uart_putu(i);
+		uart_puts(" address: ");
+		uart_putu(*current_node);
+		uart_puts("\n");
+	}
 }
 
 uint64_t pmm_malloc(){
-	/* TODO: depends on what algorithm we use */
+	/* TODO */
 }
 
 uint8_t pmm_free(uint64_t address){
-	/* TODO: depends on what algorithm we use */
+	/* TODO */
 }
 
 uint64_t pmm_get_start_address(){
