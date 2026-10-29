@@ -42,6 +42,7 @@ typedef struct dtb_reg{
 } dtb_reg;
 
 typedef struct dtb_regs{
+	/* TODO: should probably just make this a raw pointer instead of statically allocating space for DTB_REG_MAX_REGIONS in the future */
 	dtb_reg reg_regions[DTB_REG_MAX_REGIONS];
 	uint32_t count;
 } dtb_regs;
@@ -63,7 +64,13 @@ typedef struct dtb_interrupt_node_state{
 
 uint8_t dtb_correct_magic(const void* raw_dtb);
 
-uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, dtb_regs* regs);
+/**
+  * Finds the "reg' property information for the specified target_compat or target_device_type. 
+  * This function will find the first compatible device and instance of "reg" that satisfy either target_compat
+  * or target_device_type. target_compat targets the "compatible" property and target_device_type targets the "device_type" property.  
+  * NOTE: IT IS RECOMMENDED TO ONLY USE ONE OF EITHER TARGET_COMPAT OR TARGET_DEVICE_TYPE AT A TIME AND LEAVE THE OTHER STRING NULL!!!
+  **/
+uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, const char* target_device_type, dtb_regs* regs);
 
 uint8_t find_device_interrupts(const void* raw_dtb, const char* target_compat, dtb_interrupts* result);
 

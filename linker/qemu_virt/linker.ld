@@ -41,4 +41,6 @@ SECTIONS{
 	stack_top = . + 0x20000; /* 128 KiB stack */ 
 
 	. = stack_top; 
+	
+	__pmm_start = .;
 }
