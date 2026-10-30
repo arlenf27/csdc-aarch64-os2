@@ -102,6 +102,26 @@ void kernel_main(void* dtb){
 		timer_set_duration(1);
 
 		pmm_init(memory_regs.reg_regions[0].address + memory_regs.reg_regions[0].size);
+		void* allocated_page_address = pmm_malloc();
+		if(allocated_page_address != NULL){
+			uart_puts("Allocated PMM page at: ");
+			uart_putu((uint64_t) allocated_page_address);
+			uart_puts("\n");
+			void* another_allocated_page_address = pmm_malloc();
+			if(another_allocated_page_address != NULL){
+				uart_puts("Allocated another PMM page at: ");
+				uart_putu((uint64_t) another_allocated_page_address);
+				uart_puts("\n");
+				pmm_free(allocated_page_address);
+				uart_puts("Attempted a PMM free on the first allocated PMM page. \n");
+				void* a_third_allocated_page_address = pmm_malloc();
+				if(a_third_allocated_page_address != NULL){
+					uart_puts("Allocated a third PMM page at: ");
+					uart_putu((uint64_t) a_third_allocated_page_address);
+					uart_puts("\n");
+				}
+			}
+		}
 	}
 	/* simple idle: wait for interrupts (low power) */ 
 	while(1){
