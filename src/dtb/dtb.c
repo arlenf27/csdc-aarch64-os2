@@ -149,7 +149,7 @@ static uint8_t dtb_find_interrupt_cells(const void* raw_dtb, uint32_t target_pha
 	return 0;
 }
 
-uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, dtb_regs* regs){
+uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, const char* target_device_type, dtb_regs* regs){
 	const dtb_header* header = (const dtb_header*) raw_dtb;
 	const uint8_t* struct_start = (const uint8_t*) raw_dtb + be32tole32(header->off_dt_struct);
 	const char* strings_start = (const char*) raw_dtb + be32tole32(header->off_dt_strings);
@@ -259,6 +259,12 @@ uint8_t find_device_regs(const void* raw_dtb, const char* target_compat, dtb_reg
 						}
 						compat_str += str_len + 1;
 						left -= str_len + 1;
+					}
+				}else if(strcmp(prop_name, "device_type")){
+					const char* device_type = (const char*) prop_data;
+					if(strcmp(device_type, target_device_type)){
+						cstack[depth].compatible_match = 1;
+						break;
 					}
 				}else if(strcmp(prop_name, "reg")){
 					cstack[depth].reg_data = prop_data;

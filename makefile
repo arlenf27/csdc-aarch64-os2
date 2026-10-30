@@ -1,9 +1,9 @@
 qemu_build:
 	mkdir -p build
 	aarch64-none-elf-gcc --version
-	aarch64-none-elf-gcc -std=c11 -g -mgeneral-regs-only -ffreestanding -fno-builtin -fno-stack-protector -fno-pie -fno-pic -Isrc -Isrc/dtb -Isrc/uart -Isrc/gic -Isrc/timer -Isrc/machine_specific/qemu_virt_v8.0 -c src/boot.S src/vectors.S src/exception_handlers.S src/handlers.c src/kernel.c src/utils.c src/dtb/dtb.c src/uart/uart.c src/timer/timer.c src/gic/gic.c
+	aarch64-none-elf-gcc -std=c11 -g -mgeneral-regs-only -ffreestanding -fno-builtin -fno-stack-protector -fno-pie -fno-pic -Isrc -Isrc/dtb -Isrc/uart -Isrc/gic -Isrc/timer -Isrc/machine_specific/qemu_virt_v8.0 -c src/boot.S src/vectors.S src/exception_handlers.S src/handlers.c src/kernel.c src/utils.c src/pmm.c src/dtb/dtb.c src/uart/uart.c src/timer/timer.c src/gic/gic.c
 	mv *.o ./build/
-	aarch64-none-elf-ld -nostdlib -T linker/qemu_virt/linker.ld build/boot.o build/vectors.o build/exception_handlers.o build/handlers.o build/kernel.o build/utils.o build/dtb.o build/uart.o build/timer.o build/gic.o -o build/kernel.elf
+	aarch64-none-elf-ld -nostdlib -T linker/qemu_virt/linker.ld build/boot.o build/vectors.o build/exception_handlers.o build/handlers.o build/kernel.o build/utils.o build/pmm.o build/dtb.o build/uart.o build/timer.o build/gic.o -o build/kernel.elf
 
 qemu_run:
 	qemu-system-aarch64 -M virt-8.0 -cpu cortex-a57 -m 1024 -nographic -serial mon:stdio -kernel build/kernel.elf
